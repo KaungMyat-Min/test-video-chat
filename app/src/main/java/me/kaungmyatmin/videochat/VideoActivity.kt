@@ -78,6 +78,8 @@ class VideoActivity : AppCompatActivity() {
     private var room: Room? = null
     private var localParticipant: LocalParticipant? = null
 
+    private val tokenGenerator = TokenGenerator()
+
     /*
      * AudioCodec and VideoCodec represent the preferred codec for encoding and decoding audio and
      * video.
@@ -175,6 +177,7 @@ class VideoActivity : AppCompatActivity() {
 
         override fun onConnectFailure(room: Room, e: TwilioException) {
             videoStatusTextView.text = "Failed to connect"
+            Log.d("ssss",e.message)
             audioDeviceSelector.deactivate()
             initializeUI()
         }
@@ -723,13 +726,19 @@ class VideoActivity : AppCompatActivity() {
     }
 
     private fun setAccessToken() {
-        this.accessToken = getString(R.string.access_token)
-
-//        retrieveAccessTokenfromServer()
-
+        val userName = getUserName()
+        this.accessToken = tokenGenerator.generateToken(userName, roomName)
+        Log.d("ssss",roomName)
     }
 
-    private fun connectToRoom(roomName: String) {
+    private val roomName by lazy { "Room:" + (System.currentTimeMillis() / 1000) }
+
+    private fun getUserName(): String {
+        return "KaungMyat Min"
+    }
+
+    private fun connectToRoom() {
+        Log.d("ssss",roomName)
         audioDeviceSelector.activate();
         val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
             .roomName(roomName)
@@ -954,7 +963,7 @@ class VideoActivity : AppCompatActivity() {
             /*
              * Connect to room
              */
-            connectToRoom(roomEditText.text.toString())
+            connectToRoom()
         }
     }
 
