@@ -1,9 +1,7 @@
 package me.kaungmyatmin.videochat
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -12,17 +10,14 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
-import com.koushikdutta.ion.Ion
 import com.twilio.audioswitch.selection.AudioDevice
 import com.twilio.audioswitch.selection.AudioDevice.BluetoothHeadset
-import com.twilio.audioswitch.selection.AudioDevice.Earpiece
 import com.twilio.audioswitch.selection.AudioDevice.Speakerphone
 import com.twilio.audioswitch.selection.AudioDevice.WiredHeadset
 import com.twilio.audioswitch.selection.AudioDeviceSelector
@@ -67,18 +62,13 @@ class VideoActivity : AppCompatActivity() {
 
 
     /*
-     * Access token used to connect. This field will be set either from the console generated token
-     * or the request to the token server.
-     */
-    private lateinit var accessToken: String
-
-    /*
      * A Room represents communication between a local participant and one or more participants.
      */
     private var room: Room? = null
     private var localParticipant: LocalParticipant? = null
 
     private val tokenGenerator = TokenGenerator()
+    private val connectDialog = DialDialog(this::connectToRoom, this::initializeUI)
 
     /*
      * AudioCodec and VideoCodec represent the preferred codec for encoding and decoding audio and
@@ -177,7 +167,7 @@ class VideoActivity : AppCompatActivity() {
 
         override fun onConnectFailure(room: Room, e: TwilioException) {
             videoStatusTextView.text = "Failed to connect"
-            Log.d("ssss",e.message)
+            Log.d("ssss", e.message)
             audioDeviceSelector.deactivate()
             initializeUI()
         }
@@ -520,10 +510,6 @@ class VideoActivity : AppCompatActivity() {
         savedVolumeControlStream = volumeControlStream
         volumeControlStream = AudioManager.STREAM_VOICE_CALL
 
-        /*
-         * Set access token
-         */
-        setAccessToken()
 
         /*
          * Request permissions.
@@ -725,11 +711,6 @@ class VideoActivity : AppCompatActivity() {
             CameraCapturer.CameraSource.BACK_CAMERA
     }
 
-    private fun setAccessToken() {
-        val userName = getUserName()
-        this.accessToken = tokenGenerator.generateToken(userName, roomName)
-        Log.d("ssss",roomName)
-    }
 
     private val roomName by lazy { "Room:" + (System.currentTimeMillis() / 1000) }
 
@@ -737,8 +718,8 @@ class VideoActivity : AppCompatActivity() {
         return "KaungMyat Min"
     }
 
-    private fun connectToRoom() {
-        Log.d("ssss",roomName)
+    private fun connectToRoom(userName: String, roomName: String) {
+        val accessToken = tokenGenerator.generateToken(userName, roomName)
         audioDeviceSelector.activate();
         val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
             .roomName(roomName)
@@ -857,12 +838,7 @@ class VideoActivity : AppCompatActivity() {
      * Creates an connect UI dialog
      */
     private fun showConnectDialog() {
-        val roomEditText = EditText(this)
-        alertDialog = createConnectDialog(
-            roomEditText,
-            connectClickListener(roomEditText), cancelConnectDialogClickListener(), this
-        )
-        alertDialog!!.show()
+        connectDialog.show(supportFragmentManager, "dial dialog")
     }
 
     /*
@@ -958,14 +934,6 @@ class VideoActivity : AppCompatActivity() {
         }
     }
 
-    private fun connectClickListener(roomEditText: EditText): DialogInterface.OnClickListener {
-        return DialogInterface.OnClickListener { _, _ ->
-            /*
-             * Connect to room
-             */
-            connectToRoom()
-        }
-    }
 
     private fun disconnectClickListener(): View.OnClickListener {
         return View.OnClickListener {
@@ -981,12 +949,6 @@ class VideoActivity : AppCompatActivity() {
         return View.OnClickListener { showConnectDialog() }
     }
 
-    private fun cancelConnectDialogClickListener(): DialogInterface.OnClickListener {
-        return DialogInterface.OnClickListener { _, _ ->
-            initializeUI()
-            alertDialog!!.dismiss()
-        }
-    }
 
     private fun switchCameraClickListener(): View.OnClickListener {
         return View.OnClickListener {
@@ -1044,61 +1006,5 @@ class VideoActivity : AppCompatActivity() {
                 )
             }
         }
-    }
-
-    private fun retrieveAccessTokenfromServer() {
-        /*Ion.with(this)
-            .load("$ACCESS_TOKEN_SERVER?identity=${UUID.randomUUID()}")
-            .asString()
-            .setCallback { e, token ->
-                if (e == null) {
-                    this@VideoActivity.accessToken = token
-                } else {
-                    Toast.makeText(
-                        this@VideoActivity,
-                        R.string.error_retrieving_access_token, Toast.LENGTH_LONG
-                    )
-                        .show()
-                }
-            }*/
-    }
-
-    private fun createConnectDialog(
-        participantEditText: EditText,
-        callParticipantsClickListener: DialogInterface.OnClickListener,
-        cancelClickListener: DialogInterface.OnClickListener,
-        context: Context
-    ): AlertDialog {
-        val alertDialogBuilder = AlertDialog.Builder(context).apply {
-            setIcon(R.drawable.ic_video_call_white_24dp)
-            setTitle("Connect to a room")
-            setPositiveButton("Connect", callParticipantsClickListener)
-            setNegativeButton("Cancel", cancelClickListener)
-            setCancelable(false)
-        }
-
-        setRoomNameFieldInDialog(participantEditText, alertDialogBuilder, context)
-
-        return alertDialogBuilder.create()
-    }
-
-    @SuppressLint("RestrictedApi")
-    private fun setRoomNameFieldInDialog(
-        roomNameEditText: EditText,
-        alertDialogBuilder: AlertDialog.Builder,
-        context: Context
-    ) {
-        roomNameEditText.hint = "room name"
-        val horizontalPadding =
-            context.resources.getDimensionPixelOffset(R.dimen.activity_horizontal_margin)
-        val verticalPadding =
-            context.resources.getDimensionPixelOffset(R.dimen.activity_vertical_margin)
-        alertDialogBuilder.setView(
-            roomNameEditText,
-            horizontalPadding,
-            verticalPadding,
-            horizontalPadding,
-            0
-        )
     }
 }
