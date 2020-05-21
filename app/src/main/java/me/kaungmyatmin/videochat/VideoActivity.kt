@@ -643,7 +643,7 @@ class VideoActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.menu_settings -> startActivity(Intent(this, Constants::class.java))
+            R.id.menu_settings -> startActivity(Intent(this, SettingsActivity::class.java))
             R.id.menu_audio_device -> showAudioDevices()
         }
         return true
